@@ -1,0 +1,16 @@
+<%- include('./sidebar.ejs') %>
+
+    <div class="content">
+        <h1 class="mb-4">Movies List</h1>
+        <div class="col-md">
+            <% titles.forEach(title => { %>
+                <div class="col-md-6">
+                    <div class="card">
+                        <h5><a href="/api/movies?title=<%= title %>"><%= title %></a></h5>
+                    </div>
+                </div>
+            <% }) %>
+        </div>
+    </div>
+</body>
+</html>
