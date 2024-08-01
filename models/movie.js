@@ -25,10 +25,8 @@ const Movie = mongoose.model('Movie', new mongoose.Schema({
   user: {
     type: String,
     required: true
-}
-//  imagePath: String
-
-  
+},
+imageUrl : String
 }));
 
 function validateMovie(movie) {
@@ -36,8 +34,10 @@ function validateMovie(movie) {
     title: Joi.string().min(2).max(50).required(),
     genre:Joi.string(),
     director:Joi.string(),
-    rating:Joi.number(),
+    rating: Joi.number(),
     userId: Joi.string().required(),
+    imageUrl:Joi.string().required()
+
      });
 
   return schema.validate(movie);

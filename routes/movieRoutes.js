@@ -2,6 +2,12 @@ const {Movie,validate} = require('../models/movie');
 const {User} = require('../models/user');
 const mongoose = require('mongoose');
 const Joi = require('joi');
+const path = require('path');
+const logActivity = require('../middleware/activityLogger');
+
+
+
+
 
 const express = require('express');
 const methodOverride = require('method-override');
@@ -12,19 +18,20 @@ const router = express.Router();
 router.use(methodOverride('_method'));
 router.use(login);
 
-// const multer = require('multer');
+const multer = require('multer');
 
-// const storage = multer.diskStorage({
-//   destination: function (req, file, cb) {
-//     cb(null, 'uploads/')
-//   },
-//   filename: function (req, file, cb) {
-//     cb(null, file.originalname)
-//   }
-// })
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/')
+  },
+  filename: function (req, file, cb) {
+    cb(null, file.originalname)
+  }
+});
 
-// const upload = multer({ storage: storage  })
+const upload = multer({ storage: storage  });
 
+router.use('/uploads', express.static(path.join(__dirname,'uploads')));
 
 
 router.get('/add',(req,res)=>{
@@ -55,12 +62,18 @@ if (req.query.user) {
     query.user = new RegExp(req.query.user, 'i');
 }
 
+
+// const user = await User.findById(req.user._id);
+
     
    
 
     try {
-        const movies = await Movie.find(query).sort('title');
+        // const movies = await Movie.find(query).sort('title');
         // const user = await User.findById(req.body.userId);
+        const movies = await Movie.find(query);
+
+        movies.sort((a, b) => a.title.toLowerCase().localeCompare(b.title.toLowerCase()));
 
         // res.send(movies);
           res.render('movies',{movies});
@@ -71,10 +84,19 @@ if (req.query.user) {
 })
 
 
-router.post('/',async (req, res) => {
+router.post('/',upload.single('image'),logActivity('Added a Movie'),async (req, res) => {
 
-    const { error } = validateMovie(req.body); 
+    // const { error } = validateMovie(req.body); 
+    const { error } = validateMovie({
+        title: req.body.title,
+        genre: req.body.genre,
+        director: req.body.director,
+        rating: req.body.rating,
+        // imageUrl: `/uploads/${req.file.filename}`,
+      });
     if (error) return res.status(400).send(error.details[0].message);
+
+
   
     // const user = await User.findById(req.body.userId);
     const user = await User.findById(req.user._id);
@@ -83,52 +105,77 @@ router.post('/',async (req, res) => {
 
     if (!user) return res.status(400).send('Invalid user.');
   
-    let movie = new Movie({ 
+    const addData = new Movie({ 
       title: req.body.title,
       genre: req.body.genre,
       director:req.body.director,
       rating: req.body.rating,
       user: user.name,
+    //   imageUrl: `/uploads/${req.file.filename}`
       
-       });
-    movie = await movie.save();
+ });
+ if (req.file) {
+    addData.imageUrl = `/uploads/${req.file.originalname}`;
+}
+    const movie = await addData.save();
     
     // res.send(movie);
     res.redirect('/api/movies');
   });
 
-router.put('/update/:id', async (req, res) => {
-
-     const { error } = validateMovie(req.body); 
+router.put('/update/:id',upload.single('image'),logActivity('Updated a Movie'),async (req, res) => {
+    
+    const { error } = validateMovie({
+        title: req.body.title,
+        genre: req.body.genre,
+        director: req.body.director,
+        rating: req.body.rating,
+         }); 
+      
     if (error) return res.status(400).send(error.details[0].message);
+
 
     const moviename =await Movie.findById(req.params.id);
 
      const user = await User.findById(req.user._id);
      if (!user) return res.status(400).send('Invalid user.');
 
-    if(moviename.user!==user.name){
+    if(moviename.user!==user.name && !req.user.isAdmin){
         return res.status(403).send('You cannot Update...');
     }
    
   
-    const movie = await Movie.findByIdAndUpdate(req.params.id,
-      {                                       
-        title: req.body.title,
-      genre: req.body.genre,
-      director:req.body.director,
-      rating: req.body.rating,
-    //   imagePath:req.file.path
-    //   user:user.name
-     }, { new: true });
+    // const movie = await Movie.findByIdAndUpdate(req.params.id,
+    //   {                                       
+    //     title: req.body.title,
+    //   genre: req.body.genre,
+    //   director:req.body.director,
+    //   rating: req.body.rating,
+    //   imageUrl: `/uploads/${req.file.originalname}`
+    // //   user:user.name
+    //  }, { new: true });
   
+    const updateData = {
+        title: req.body.title,
+        genre: req.body.genre,
+        director: req.body.director,
+        rating: req.body.rating,
+    };
+
+    if (req.file) {
+        updateData.imageUrl = `/uploads/${req.file.originalname}`;
+    }
+
+    const movie = await Movie.findByIdAndUpdate(req.params.id, updateData, { new: true });
+
+
     if (!movie) return res.status(404).send('The movie with the given ID was not found.');
     await movie.save();
     // res.send(movie);
     res.redirect('/api/movies');
   });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id',logActivity('Deleted a Movie'), async (req, res) => {
     try{
         const movie = await Movie.findById(req.params.id);
 
@@ -142,7 +189,7 @@ router.delete('/:id', async (req, res) => {
 
     const currentUser = user.name;
 
-    if(movieUser!== currentUser){
+    if(movieUser!== currentUser && !req.user.isAdmin){
         return res.status(403).send('You cannot Delete...');
     }
         await Movie.findByIdAndDelete(req.params.id);
@@ -222,7 +269,8 @@ router.get('/:id', async (req, res) => {
       title: Joi.string().min(2).max(50).required(),
       genre:Joi.string(),
       director:Joi.string(),
-      rating:Joi.number(),
+      rating: Joi.number(),
+      imageUrl:Joi.string().optional()
        });
   
     return schema.validate(movie);

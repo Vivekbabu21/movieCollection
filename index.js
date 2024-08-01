@@ -10,21 +10,27 @@ const resetpassword=require('./routes/resetpassword.js');
 const logout= require('./routes/logout.js');
 const cookieParser = require('cookie-parser');
 const multer = require('multer');
+const path = require('path');
+const activityRoutes = require('./routes/activityRoutes');  
+
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, 'uploads/')
+    cb(null, 'uploads/');
   },
   filename: function (req, file, cb) {
-    cb(null, file.originalname)
+    cb(null, file.originalname);
   }
-})
+});
 
-const upload = multer({ storage: storage  })
+const upload = multer({ storage: storage });
+
 const app = express();
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(cookieParser());
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 
 
 app.set('view engine', 'ejs');
@@ -42,6 +48,7 @@ app.use('/api/login',loginRoutes);
 app.use('/api/forgetpassword',forgetpassword);
 app.use('/resetpassword',resetpassword);
 app.use('/logout',logout);
+app.use('/api/activities', activityRoutes);
 app.use(methodOverride('_method'));
 app.use(login);
 

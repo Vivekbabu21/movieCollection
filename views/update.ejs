@@ -9,7 +9,7 @@
 </head>
 <body>
     <h1>Update Movie</h1>
-    <form action="/api/movies/update/<%= movie._id %>?_method=PUT" method="post">
+    <form action="/api/movies/update/<%= movie._id %>?_method=PUT" method="post" enctype="multipart/form-data">
         <div class="form-group">
             <label for="title">Title:</label>
             <input type="text" id="title" name="title" class="form-control" value="<%= movie.title %>" required>
@@ -26,6 +26,10 @@
             <label for="rating">Rating:</label>
             <input type="number" id="rating" name="rating" class="form-control" min="1" max="10" value="<%= movie.rating %>" required>
         </div><br>
+        <div class="form-group">
+            <label for="image">Upload Image</label>
+            <input type="file" class="form-control" id="image" name="image">
+          </div>
         <button type="submit" class="btn btn-primary">Update Movie</button>
     </form>
 </body>

@@ -6,7 +6,7 @@ const User = require('../models/user');
 
 async function login(req,res,next){
     // const token = req.header('x-token');
-    const token = req.cookies['x-token'];
+    const token = req.cookies['x-token'] || req.header('x-token');
     if(!token) return res.status(401).send('Access deied.No token provided.');
 
     try{

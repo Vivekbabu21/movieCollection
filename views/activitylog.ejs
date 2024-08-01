@@ -1,0 +1,40 @@
+<%- include('./sidebar.ejs') %>
+
+    <div class="content">
+        <h1 class="mb-4"><%= user.name %>
+            <form action="/api/users/editUsername" method="get" style="display: inline;">
+                <button type="submit" class="btn btn-sm btn-success">Edit</button>
+    
+    
+            </form>
+            <form action="/api/activities/activitylogs" style="display: inline;">
+                <button type="submit" class="btn btn-sm btn-primary">Activity Log</button>
+            </form></h1>
+        <div class="col-md">
+                <p><strong>Name:</strong> <%= user.name %></p>
+                <p><strong>Email:</strong> <%= user.email %></p>
+                <p><strong>Number of movies added:</strong> <%= (moviesAdded.length > 0) ? moviesAdded[0].count : 0 %></p>
+        </div>
+    </div>
+<div>
+    <% if (activities.length === 0) { %>
+        <p>No data available</p>
+    <% } else { %>   
+    <ul class="list-group"><br>
+    <% activities.forEach(activity => { %>
+      <li class="list-group-item">
+        <strong>Action:</strong> <%= activity.action %><br>
+        <strong>Timestamp:</strong> <%= activity.timestamp %>
+      </li>
+    <% }) %>
+  </ul><br>
+  <% } %>
+
+  <form action="/api/activities/<%= user._id %>?_method=DELETE" method="post" >
+    <button type="submit" class="btn btn-sm btn-danger">Clear Log</button>  
+</form>
+</div>
+    
+    
+</body>
+</html>
